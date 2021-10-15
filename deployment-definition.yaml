@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: motive-back-end-deployment
+
+spec:
+  template:
+    metadata:
+      name: motive-back-end-pod
+      labels:
+        type: motive-back-end
+
+    spec:
+      containers:
+        - name: motive-back-end-container
+          image: motivecr.azurecr.io/motivecr/motive-back-end:latest
+
+  replicas: 1
+
+  selector:
+    matchLabels:
+      type: motive-back-end
