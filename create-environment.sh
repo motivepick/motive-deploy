@@ -43,7 +43,7 @@ az acr import --name $ACR_NAME --source $CERT_MANAGER_REGISTRY/$CERT_MANAGER_IMA
 STATIC_IP_RESOURCE_GROUP="MC_${RESOURCE_GROUP_NAME}_${AKS_NAME}_${AZURE_REGION}"
 STATIC_IP=$(az network public-ip create --resource-group $STATIC_IP_RESOURCE_GROUP --name motivepublicip --sku standard --allocation-method static --query publicIp.ipAddress -o tsv)
 
-# install Nginx
+# install Nginx Ingress
 
 az aks get-credentials --resource-group $RESOURCE_GROUP_NAME --name $AKS_NAME
 
@@ -52,29 +52,58 @@ kubectl create namespace $KUBERNETES_NAMESPACE
 ACR_URL=$(az acr show -n $ACR_NAME --query loginServer -o tsv)
 DNS_LABEL=motivedns
 
-# TODO: use repository instead of the local version
-cd ~/dev/git_home/ingress-nginx-controller-v0.48.1/charts/ingress-nginx
+# use "helm search repo ingress-nginx/ingress-nginx -l" to find chart version that corresponds to CONTROLLER_TAG
+CHART_VERSION=3.35.0
 
-helm install nginx-ingress . \
-    --namespace $KUBERNETES_NAMESPACE \
-    --set controller.replicaCount=2 \
-    --set controller.nodeSelector."kubernetes\.io/os"=linux \
-    --set controller.image.registry=$ACR_URL \
-    --set controller.image.image=$CONTROLLER_IMAGE \
-    --set controller.image.tag=$CONTROLLER_TAG \
-    --set controller.image.digest="" \
-    --set controller.admissionWebhooks.patch.nodeSelector."kubernetes\.io/os"=linux \
-    --set controller.admissionWebhooks.patch.image.registry=$ACR_URL \
-    --set controller.admissionWebhooks.patch.image.image=$PATCH_IMAGE \
-    --set controller.admissionWebhooks.patch.image.tag=$PATCH_TAG \
-    --set controller.admissionWebhooks.patch.image.digest="" \
-    --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux \
-    --set defaultBackend.image.registry=$ACR_URL \
-    --set defaultBackend.image.image=$DEFAULT_BACK_END_IMAGE \
-    --set defaultBackend.image.tag=$DEFAULT_BACK_END_TAG \
-    --set controller.service.loadBalancerIP=$STATIC_IP \
-    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-dns-label-name"=$DNS_LABEL
+helm install nginx-ingress ingress-nginx/ingress-nginx --version $CHART_VERSION \
+  --namespace $KUBERNETES_NAMESPACE \
+  --set controller.replicaCount=2 \
+  --set controller.nodeSelector."kubernetes\.io/os"=linux \
+  --set controller.image.registry=$ACR_URL \
+  --set controller.image.image=$CONTROLLER_IMAGE \
+  --set controller.image.tag=$CONTROLLER_TAG \
+  --set controller.image.digest="" \
+  --set controller.admissionWebhooks.patch.nodeSelector."kubernetes\.io/os"=linux \
+  --set controller.admissionWebhooks.patch.image.registry=$ACR_URL \
+  --set controller.admissionWebhooks.patch.image.image=$PATCH_IMAGE \
+  --set controller.admissionWebhooks.patch.image.tag=$PATCH_TAG \
+  --set controller.admissionWebhooks.patch.image.digest="" \
+  --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux \
+  --set defaultBackend.image.registry=$ACR_URL \
+  --set defaultBackend.image.image=$DEFAULT_BACK_END_IMAGE \
+  --set defaultBackend.image.tag=$DEFAULT_BACK_END_TAG \
+  --set controller.service.loadBalancerIP=$STATIC_IP \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-dns-label-name"=$DNS_LABEL
 
-kubectl -n $KUBERNETES_NAMESPACE get events --sort-by='{.lastTimestamp}'
+# install cert-manager
 
-kubectl --namespace $KUBERNETES_NAMESPACE get services -o wide -w nginx-ingress-ingress-nginx-controller
+kubectl label namespace $KUBERNETES_NAMESPACE cert-manager.io/disable-validation=true
+
+helm repo add jetstack https://charts.jetstack.io
+
+helm repo update
+
+helm install cert-manager jetstack/cert-manager \
+  --namespace $KUBERNETES_NAMESPACE \
+  --version $CERT_MANAGER_TAG \
+  --set installCRDs=true \
+  --set nodeSelector."kubernetes\.io/os"=linux \
+  --set image.repository=$ACR_URL/$CERT_MANAGER_IMAGE_CONTROLLER \
+  --set image.tag=$CERT_MANAGER_TAG \
+  --set webhook.image.repository=$ACR_URL/$CERT_MANAGER_IMAGE_WEBHOOK \
+  --set webhook.image.tag=$CERT_MANAGER_TAG \
+  --set cainjector.image.repository=$ACR_URL/$CERT_MANAGER_IMAGE_CA_INJECTOR \
+  --set cainjector.image.tag=$CERT_MANAGER_TAG
+
+# create CA cluster issuer
+
+kubectl apply -f cluster-issuer.yaml --namespace $KUBERNETES_NAMESPACE
+
+# create demo applications (temporary)
+
+kubectl apply -f aks-hello-world.yaml --namespace $KUBERNETES_NAMESPACE
+kubectl apply -f ingress-demo.yaml --namespace $KUBERNETES_NAMESPACE
+
+# create Kubernetes Ingress
+
+kubectl apply -f motive-ingress.yaml --namespace $KUBERNETES_NAMESPACE
