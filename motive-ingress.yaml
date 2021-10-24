@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - motivedns.westeurope.cloudapp.azure.com
+        - api.motivepick.com
       secretName: tls-secret
   rules:
-    - host: motivedns.westeurope.cloudapp.azure.com
+    - host: api.motivepick.com
       http:
         paths:
           - path: /hello-world-one(/|$)(.*)
