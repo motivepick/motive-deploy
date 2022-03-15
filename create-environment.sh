@@ -44,7 +44,7 @@ az acr import --name $ACR_NAME --source $CERT_MANAGER_REGISTRY/$CERT_MANAGER_IMA
 STATIC_IP_RESOURCE_GROUP="MC_${RESOURCE_GROUP_NAME}_${AKS_NAME}_${AZURE_REGION}"
 STATIC_IP=$(az network public-ip create --resource-group $STATIC_IP_RESOURCE_GROUP --name motivepublicip --sku standard --allocation-method static --query publicIp.ipAddress -o tsv)
 
-# install Nginx Ingress
+# install Nginx Ingress Controller for Kubernetes
 
 az aks get-credentials --resource-group $RESOURCE_GROUP_NAME --name $AKS_NAME
 
@@ -97,10 +97,9 @@ helm install cert-manager jetstack/cert-manager \
 
 kubectl apply -f cluster-issuer.yaml --namespace $KUBERNETES_NAMESPACE
 
-# create demo applications (temporary)
+# create back end application (make sure motivecr.azurecr.io/motivecr/motive-back-end:latest exist in the ACR)
 
-kubectl apply -f aks-hello-world.yaml --namespace $KUBERNETES_NAMESPACE
-kubectl apply -f ingress-demo.yaml --namespace $KUBERNETES_NAMESPACE
+kubectl apply -f deployment-definition.yaml --namespace $KUBERNETES_NAMESPACE
 
 # create Kubernetes Ingress
 

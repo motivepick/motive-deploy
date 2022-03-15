@@ -16,24 +16,10 @@ spec:
     - host: api.motivepick.com
       http:
         paths:
-          - path: /hello-world-one(/|$)(.*)
-            pathType: Prefix
-            backend:
-              service:
-                name: aks-helloworld
-                port:
-                  number: 80
-          - path: /hello-world-two(/|$)(.*)
-            pathType: Prefix
-            backend:
-              service:
-                name: ingress-demo
-                port:
-                  number: 80
           - path: /(.*)
             pathType: Prefix
             backend:
               service:
-                name: aks-helloworld
+                name: motive-back-end-service
                 port:
                   number: 80

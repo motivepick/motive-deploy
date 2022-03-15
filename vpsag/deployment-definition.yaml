@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: motive-back-end-deployment
+spec:
+  template:
+    metadata:
+      name: motive-back-end-pod
+      labels:
+        app: motive-back-end
+    spec:
+      containers:
+        - name: motive-back-end-container
+          image: docker.io/yaskovdev/capturing-server:latest
+          env:
+            - name: DATABASE_URL
+              value: "jdbc:postgresql://motive-postgres-postgresql.app.svc.cluster.local:5432/motive"
+            - name: DATABASE_USERNAME
+              value: "postgres"
+            - name: DATABASE_PASSWORD
+              value: "pmkct8tloM"
+          ports:
+            - containerPort: 8080
+  replicas: 1
+  selector:
+    matchLabels:
+      app: motive-back-end
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: motive-back-end-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+      app: motive-back-end
