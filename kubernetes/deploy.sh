@@ -61,4 +61,4 @@ kubectl apply --namespace $APP_NAMESPACE_NAME -f ssl-tls-cluster-issuer.yaml
 kubectl apply --namespace $APP_NAMESPACE_NAME -f ssl-tls-ingress.yaml
 
 # TODO: automate checking for the "The certificate has been successfully issued" event
-# kubectl describe cert app-web-cert --namespace app
+# kubectl describe cert app-web-cert --namespace $APP_NAMESPACE_NAME
