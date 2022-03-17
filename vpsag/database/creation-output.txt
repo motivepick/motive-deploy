@@ -4,7 +4,7 @@ PostgreSQL can be accessed via port 5432 on the following DNS names from within 
 
 To get the password for "postgres" run:
 
-    export POSTGRES_PASSWORD=$(kubectl get secret --namespace app motive-postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
+    export POSTGRES_PASSWORD=$(kubectl get secret --namespace motive motive-database-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
 
 To connect to your database run the following command:
 
