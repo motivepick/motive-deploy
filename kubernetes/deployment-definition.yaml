@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: motive-back-end-container
-          image: docker.io/yaskovdev/capturing-server:latest
+          image: docker.io/yaskovdev/motive-back-end:latest
           env:
             - name: DATABASE_URL
               value: "$DATABASE_JDBC_URL"
