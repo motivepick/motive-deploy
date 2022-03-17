@@ -42,7 +42,7 @@ helm install $APP_DATABASE_NAME bitnami/postgresql \
 # kubectl port-forward --namespace motive svc/motive-database-postgresql 5432:5432
 export DATABASE_JDBC_URL="jdbc:postgresql://$APP_DATABASE_NAME-postgresql.motive.svc.cluster.local:5432/motive"
 export DATABASE_USERNAME="postgres"
-export POSTGRES_PASSWORD=$(kubectl get secret --namespace $APP_NAMESPACE_NAME $APP_DATABASE_NAME-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
+POSTGRES_PASSWORD=$(kubectl get secret --namespace $APP_NAMESPACE_NAME $APP_DATABASE_NAME-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
 # TODO create database in a more robust way
 kubectl run $APP_DATABASE_NAME-postgresql-client --rm --tty -i --restart='Never' --namespace $APP_NAMESPACE_NAME --image docker.io/bitnami/postgresql:14.2.0-debian-10-r31 \
   --command -- psql postgresql://$DATABASE_USERNAME:"$POSTGRES_PASSWORD"@$APP_DATABASE_NAME-postgresql:5432 -c "CREATE DATABASE motive ENCODING 'UTF8' TEMPLATE template0;"
