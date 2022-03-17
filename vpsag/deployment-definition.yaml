@@ -14,11 +14,15 @@ spec:
           image: docker.io/yaskovdev/capturing-server:latest
           env:
             - name: DATABASE_URL
-              value: "jdbc:postgresql://motive-postgres-postgresql.app.svc.cluster.local:5432/motive"
+              value: "$DATABASE_JDBC_URL"
             - name: DATABASE_USERNAME
-              value: "postgres"
+              value: "$DATABASE_USERNAME"
             - name: DATABASE_PASSWORD
-              value: "pmkct8tloM"
+              valueFrom:
+                secretKeyRef:
+                  name: $APP_DATABASE_NAME-postgresql
+                  key: postgres-password
+                  optional: false
           ports:
             - containerPort: 8080
   replicas: 1
@@ -36,4 +40,4 @@ spec:
     - port: 80
       targetPort: 8080
   selector:
-      app: motive-back-end
+    app: motive-back-end

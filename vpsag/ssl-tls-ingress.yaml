@@ -8,13 +8,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - api.motivepick.com # update IP address here
+        - api.motivepick.com
       secretName: app-web-cert
   rules:
-  - host: api.motivepick.com # update IP address here
-    http:
-      paths:
-      - backend:
-          serviceName: motive-back-end-service
-          servicePort: 80
-        path: /
+    - host: api.motivepick.com
+      http:
+        paths:
+          - backend:
+              serviceName: motive-back-end-service
+              servicePort: 80
+            path: /

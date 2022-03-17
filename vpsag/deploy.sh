@@ -8,6 +8,7 @@ export BACK_END_PUBLIC_IP="185.203.117.158"
 
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
 echo "Creating namespace $APP_NAMESPACE_NAME..."
@@ -28,27 +29,36 @@ helm install $APP_INGRESS_NAME ingress-nginx/ingress-nginx \
 kubectl apply -f ingress.yaml -n $APP_NAMESPACE_NAME
 
 echo "Creating database..."
-# TODO: even though you create new PV here, files from the old one still may persist on the node file system and contain old password PostgreSQL
-# will reuse. Find a way to remove old PV together with the files.
 kubectl apply -f database-pv.yaml -n $APP_NAMESPACE_NAME
 kubectl apply -f database-pvc.yaml -n $APP_NAMESPACE_NAME
 
 helm install $APP_DATABASE_NAME bitnami/postgresql \
+  --version 11.1.7 \
   --namespace $APP_NAMESPACE_NAME \
   --set primary.persistence.existingClaim=database-pvc \
   --set primary.resources.requests.cpu=0 \
   --set volumePermissions.enabled=true
 
-helm uninstall $APP_DATABASE_NAME
-kubectl delete pvc database-pvc -n $APP_NAMESPACE_NAME
-kubectl delete pv database-pv -n $APP_NAMESPACE_NAME
-
-# motive-database-postgresql.motive.svc.cluster.local
-
+# kubectl port-forward --namespace motive svc/motive-database-postgresql 5432:5432
 export DATABASE_JDBC_URL="jdbc:postgresql://$APP_DATABASE_NAME-postgresql.motive.svc.cluster.local:5432/motive"
 export DATABASE_USERNAME="postgres"
 export POSTGRES_PASSWORD=$(kubectl get secret --namespace $APP_NAMESPACE_NAME $APP_DATABASE_NAME-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
+# TODO create database in a more robust way
 kubectl run $APP_DATABASE_NAME-postgresql-client --rm --tty -i --restart='Never' --namespace $APP_NAMESPACE_NAME --image docker.io/bitnami/postgresql:14.2.0-debian-10-r31 \
   --command -- psql postgresql://$DATABASE_USERNAME:"$POSTGRES_PASSWORD"@$APP_DATABASE_NAME-postgresql:5432 -c "CREATE DATABASE motive ENCODING 'UTF8' TEMPLATE template0;"
 
-# TODO create database itself
+echo "Creating deployment..."
+envsubst <deployment-definition.yaml | kubectl apply -f - -n $APP_NAMESPACE_NAME
+
+echo "Configuring HTTPS..."
+helm install cert-manager jetstack/cert-manager \
+  --namespace $APP_NAMESPACE_NAME \
+  --version v1.3.1 \
+  --set installCRDs=true
+
+kubectl apply --namespace $APP_NAMESPACE_NAME -f ssl-tls-cluster-issuer.yaml
+
+kubectl apply --namespace $APP_NAMESPACE_NAME -f ssl-tls-ingress.yaml
+
+# TODO: automate checking for the "The certificate has been successfully issued" event
+# kubectl describe cert app-web-cert --namespace app
