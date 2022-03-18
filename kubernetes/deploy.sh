@@ -47,8 +47,11 @@ POSTGRES_PASSWORD=$(kubectl get secret --namespace $APP_NAMESPACE_NAME $APP_DATA
 kubectl run $APP_DATABASE_NAME-postgresql-client --rm --tty -i --restart='Never' --namespace $APP_NAMESPACE_NAME --image docker.io/bitnami/postgresql:14.2.0-debian-10-r31 \
   --command -- psql postgresql://$DATABASE_USERNAME:"$POSTGRES_PASSWORD"@$APP_DATABASE_NAME-postgresql:5432 -c "CREATE DATABASE motive ENCODING 'UTF8' TEMPLATE template0;"
 
-echo "Creating deployment..."
-envsubst <deployment-definition.yaml | kubectl apply -f - -n $APP_NAMESPACE_NAME
+echo "Creating back end service..."
+kubectl apply --namespace $APP_NAMESPACE_NAME -f back-end-service.yaml
+
+echo "Creating back end deployment..."
+envsubst <back-end-deployment.yaml | kubectl apply -f - -n $APP_NAMESPACE_NAME
 
 echo "Configuring HTTPS..."
 helm install cert-manager jetstack/cert-manager \
