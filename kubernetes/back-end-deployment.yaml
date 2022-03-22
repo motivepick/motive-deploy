@@ -12,11 +12,16 @@ spec:
       containers:
         - name: motive-back-end-container
           image: docker.io/yaskovdev/motive-back-end:latest
+          imagePullPolicy: Always
           env:
             - name: DATABASE_URL
               value: "$DATABASE_JDBC_URL"
             - name: DATABASE_USERNAME
-              value: "$DATABASE_USERNAME"
+              valueFrom:
+                configMapKeyRef:
+                  name: motive-config
+                  key: postgres-username
+                  optional: false
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
