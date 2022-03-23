@@ -30,6 +30,10 @@ spec:
                   optional: false
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health
   replicas: 2
   selector:
     matchLabels:
