@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: motive-back-end-container
-          image: docker.io/yaskovdev/motive-back-end:latest
+          image: $FULL_IMAGE
           imagePullPolicy: Always
           env:
             - name: DATABASE_URL
